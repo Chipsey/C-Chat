@@ -1,0 +1,9 @@
+.card_movie_title {
+  font-weight: bold;
+  font-size: smaller;
+}
+
+.card_movie_year {
+  font-weight: bold;
+  color: rgb(123, 123, 123);
+}
