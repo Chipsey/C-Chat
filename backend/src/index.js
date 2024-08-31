@@ -23,66 +23,78 @@ const User = require("./models/User");
 const Message = require("./models/Message");
 const Group = require("./models/Group");
 
-app.use("/", userRoutes);
+app.use("/users", userRoutes);
 
-// Web Socket Setup
+const userSockets = {}; // Object to store user WebSocket connections
 
-// WebSocket setup
 wss.on("connection", (ws) => {
   console.log("Client connected");
 
+  // Add the new connection to the collection
+  const { ObjectId } = mongoose.Types;
+
   ws.on("message", async (message) => {
-    console.log(message);
-    const parsedMessage = JSON.parse(message);
-    const { type, data, token } = parsedMessage;
+    try {
+      const parsedMessage = JSON.parse(message);
+      console.log(
+        `parsedMessage -------------------------------------------------------------- ${JSON.stringify(parsedMessage)}`
+      );
+      const { type, data, token } = parsedMessage;
 
-    // Authenticate WebSocket messages
-    const user = jwt.verify(token, "SECRET_KEY");
-    ws.userId = user.id; // Store user ID in the WebSocket object
+      // Verify and decode the JWT token
+      const user = jwt.verify(token, process.env.JWT_SECRET);
+      console.log(user?.userId);
 
-    // Store connection
-    if (!userSockets[user.id]) {
-      userSockets[user.id] = ws;
-    }
+      if (user) {
+        userSockets[user?.userId] = ws;
+        console.log(`User ${user?.userId} connected`);
+      }
 
-    switch (type) {
-      case "MESSAGE":
-        // Handle sending messages
-        const { recipientId, groupId, text } = data;
-        const encryptedText = crypto
-          .createCipher("aes-256-cbc", "ENCRYPTION_KEY")
-          .update(text, "utf8", "hex");
+      // Handle message type
+      switch (type) {
+        case "MESSAGE": {
+          if (data.recipient) {
+            // Convert recipientId to ObjectId
+            data.recipient = new ObjectId(data.recipient); // Correct usage
+          }
+          console.log(
+            `Data -------------------------------------------------------------- ${data.text}`
+          );
 
-        let messageData = { sender: user.id, text: encryptedText };
-        if (recipientId) {
-          messageData.recipient = recipientId;
-          // Save to database
-          await Message.create({ ...messageData, type: "user" });
-          // Send message to specific user
-          if (userSockets[recipientId]) {
-            userSockets[recipientId].send(
-              JSON.stringify({ type: "MESSAGE", data: messageData })
+          await Message.create({
+            sender: user.id,
+            text: data.text,
+            recipient: data.recipient,
+            group: data.groupId || null,
+            type: data.recipient ? "user" : "group",
+          });
+
+          // Send to the recipient if available
+          if (userSockets[data.recipient]) {
+            userSockets[data.recipient].send(
+              JSON.stringify({
+                type: "MESSAGE",
+                data: { ...data, text: data.text },
+              })
             );
           }
-        } else if (groupId) {
-          messageData.group = groupId;
-          // Save to database
-          await Message.create({ ...messageData, type: "group" });
-          // Broadcast to group members
-          const group = await Group.findById(groupId);
-          group.members.forEach((memberId) => {
-            if (userSockets[memberId]) {
-              userSockets[memberId].send(
-                JSON.stringify({ type: "MESSAGE", data: messageData })
-              );
-            }
-          });
+          ws.send(
+            JSON.stringify({
+              type: "MESSAGE",
+              data: { ...data, text: data.text },
+            })
+          );
+          break;
         }
-        break;
-
-      // Handle other message types (e.g., JOIN_GROUP)
-      default:
-        console.log("Unknown message type:", type);
+      }
+    } catch (error) {
+      ws.send(
+        JSON.stringify({
+          type: "ERROR",
+          error: error,
+        })
+      );
+      console.error("Error processing message:", error);
     }
   });
 
@@ -97,10 +109,9 @@ wss.on("connection", (ws) => {
   });
 });
 
-// Start the Server
 const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   logger(
-    `Server running on ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ port ${PORT}`
+    `Server running on port-------------------------------------- ${PORT}`
   );
 });

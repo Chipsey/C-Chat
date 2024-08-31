@@ -11,6 +11,13 @@ const authAPI = {
     );
     return response;
   },
+  register: async (credentials) => {
+    const response = await axios.post(
+      `${LOCAL_SERVER_URL}/${baseUrl}/register`,
+      credentials
+    );
+    return response;
+  },
 };
 
 export default authAPI;

@@ -2,27 +2,60 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import jwtDecode from "jwt-decode";
 import CryptoJS from "crypto-js";
+import localStorageService from "../utils/localStorage";
+import { useNavigate } from "react-router-dom";
 
-const App = () => {
+const HomePage = () => {
   const [ws, setWs] = useState(null);
+  const [encryptionKey, setEncryptionKey] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [token, setToken] = useState(null);
 
+  const navigate = useNavigate();
+
   useEffect(() => {
+    const storedToken = localStorageService.getItem("token");
+    setToken(storedToken);
     const socket = new WebSocket("ws://localhost:8000");
     setWs(socket);
 
     socket.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      const decryptedMessage = CryptoJS.AES.decrypt(
-        message.data.text,
-        "ENCRYPTION_KEY"
-      ).toString(CryptoJS.enc.Utf8);
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        { ...message.data, text: decryptedMessage },
-      ]);
+      try {
+        const message = JSON.parse(event.data);
+        console.log(message?.type);
+
+        switch (message?.type) {
+          case "ERROR": {
+            switch (message?.error?.name) {
+              case "TokenExpiredError": {
+                console.log("Logout");
+                handleLogOut();
+                break;
+              }
+              default:
+                console.log("Unhandled error:", message?.error?.name);
+            }
+            break;
+          }
+          case "MESSAGE": {
+            // Decrypt message using the stored encryption key
+            const decryptedMessage = CryptoJS.AES.decrypt(
+              message?.data?.text,
+              "encryptionKey"
+            ).toString(CryptoJS.enc.Utf8);
+
+            setMessages((prevMessages) => [
+              ...prevMessages,
+              { ...message.data, text: decryptedMessage },
+            ]);
+            console.log(messages);
+            break;
+          }
+        }
+      } catch (error) {
+        console.error("Failed to parse message:", error);
+      }
     };
 
     return () => {
@@ -30,67 +63,12 @@ const App = () => {
     };
   }, [token]);
 
-  const handleLogin = async () => {
-    // Perform login and store token
-    const response = await axios.post("http://localhost:8000/login", {
-      email: "chipsey@gmail.com",
-      password: "123456",
-    });
-    console.log(response.data);
+  function handleLogOut() {
+    localStorageService.clear();
+    navigate("/login");
+  }
 
-    setToken(response.data.auth.token);
-  };
-
-  const sendMessage = () => {
-    if (ws && input) {
-      const encryptedText = CryptoJS.AES.encrypt(
-        input,
-        "ENCRYPTION_KEY"
-      ).toString();
-      ws.send(
-        JSON.stringify({
-          type: "MESSAGE",
-          data: {
-            text: encryptedText,
-            recipientId: "recipient_user_id",
-            groupId: null,
-          },
-          token,
-        })
-      );
-      setInput("");
-    }
-  };
-
-  return (
-    <div style={{ padding: 20 }}>
-      <h1>WebSocket Chat</h1>
-      <button onClick={handleLogin}>Login</button>
-      <div
-        style={{
-          border: "1px solid #ccc",
-          padding: 10,
-          height: 300,
-          overflowY: "scroll",
-          marginBottom: 10,
-        }}
-      >
-        {messages.map((msg, index) => (
-          <div key={index}>{msg.text}</div>
-        ))}
-      </div>
-      <input
-        type="text"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        placeholder="Type a message..."
-        style={{ width: "80%", padding: 8 }}
-      />
-      <button onClick={sendMessage} style={{ padding: 8 }}>
-        Send
-      </button>
-    </div>
-  );
+  return <div style={{ padding: 20 }}>Home</div>;
 };
 
-export default App;
+export default HomePage;
