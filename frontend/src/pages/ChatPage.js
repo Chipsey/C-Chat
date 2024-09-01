@@ -211,7 +211,10 @@ const ChatPage = () => {
                     md={5.5}
                     className="fade-slide-up"
                     sx={{
-                      background: "rgba(46,51,61,255)",
+                      background:
+                        userId === msg?.sender
+                          ? "rgba(107,138,253,255)"
+                          : "rgba(46,51,61,255)",
                       fontSize: "1rem",
                     }}
                     p={2}
@@ -248,13 +251,15 @@ const ChatPage = () => {
                   fullWidth
                   sx={{
                     height: "3rem",
-                    background: "#454c5c",
+                    background: "rgba(107,138,253,255)",
                     marginTop: "0.5rem",
                     color: "lightgrey",
+                    borderRadius: "0rem 0.5rem 0.5rem 0rem",
                   }}
-                  endIcon={<SendIcon />}
                   onClick={sendMessage}
-                ></Button>
+                >
+                  <SendIcon />
+                </Button>
               </Grid>
             </Grid>
           </Grid>

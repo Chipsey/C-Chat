@@ -17,6 +17,7 @@ const CustomTextField = ({ label, name, value, onChange, type, required }) => {
       }}
       InputProps={{
         sx: {
+          borderRadius: "0.5rem",
           fontSize: "0.7rem",
           color: "white",
           "& .MuiOutlinedInput-notchedOutline": {
