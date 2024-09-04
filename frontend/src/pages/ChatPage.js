@@ -235,7 +235,7 @@ const ChatPage = () => {
             </Grid>
 
             <Grid container xl={12}>
-              <Grid xl={11} md={10}>
+              <Grid xl={11} md={10} sm={10}>
                 <CustomTextField
                   label="You Message..."
                   type="text"

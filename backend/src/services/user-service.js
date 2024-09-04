@@ -66,9 +66,9 @@ const addGroup = async ({ name, members }) => {
   return resp;
 };
 
-const getAllUsers = async () => {
-  const users = await crudService.readAll(User);
-  return users;
+const getAllUsers = async (queryParams) => {
+  const searchFields = ["name", "email"];
+  return await crudService.readAll(User, { ...queryParams, searchFields });
 };
 
 module.exports = {

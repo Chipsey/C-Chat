@@ -693,6 +693,13 @@ code {
   vertical-align: text-bottom !important;
 }
 
+.align-middle {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  height: 100vh !important;
+}
+
 /* color data */
 
 .color-yellow {

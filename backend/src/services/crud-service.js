@@ -7,9 +7,24 @@ const create = async (Model, data) => {
   }
 };
 
-const readAll = async (Model) => {
+const readAll = async (Model, { limit, page, search, searchFields }) => {
   try {
-    return await Model.find();
+    const query = search
+      ? {
+          $or: searchFields.map((field) => ({
+            [field]: { $regex: search, $options: "i" },
+          })),
+        }
+      : {};
+
+    const items = await Model.find(query)
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit));
+
+    const totalItems = await Model.countDocuments(query);
+    const totalPages = Math.ceil(totalItems / parseInt(limit));
+
+    return { items, currentPage: parseInt(page), totalPages, totalItems };
   } catch (error) {
     throw new Error(`Error fetching documents: ${error.message}`);
   }
