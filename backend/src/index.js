@@ -8,6 +8,7 @@ const crypto = require("crypto");
 const cors = require("cors");
 const logger = require("./utils/logger");
 const userRoutes = require("./routes/user-routes");
+const messageRoutes = require("./routes/message-routes");
 
 const app = express();
 const server = http.createServer(app);
@@ -19,11 +20,11 @@ app.use(cors());
 // MongoDB setup
 connectDB();
 
-const User = require("./models/User");
 const Message = require("./models/Message");
-const Group = require("./models/Group");
+const messageService = require("./services/message-service");
 
 app.use("/users", userRoutes);
+app.use("/messages", messageRoutes);
 
 const userSockets = {}; // Object to store user WebSocket connections
 
@@ -37,7 +38,9 @@ wss.on("connection", (ws) => {
     try {
       const parsedMessage = JSON.parse(message);
       console.log(
-        `parsedMessage -------------------------------------------------------------- ${JSON.stringify(parsedMessage)}`
+        `parsedMessage -------------------------------------------------------------- ${JSON.stringify(
+          parsedMessage
+        )}`
       );
       const { type, data, token } = parsedMessage;
 
@@ -53,25 +56,30 @@ wss.on("connection", (ws) => {
       // Handle message type
       switch (type) {
         case "MESSAGE": {
-          if (data.recipient) {
+          if (data.recipient._id) {
             // Convert recipientId to ObjectId
-            data.recipient = new ObjectId(data.recipient); // Correct usage
+            data.recipient._id = new ObjectId(data.recipient._id); // Correct usage
           }
           console.log(
             `Data -------------------------------------------------------------- ${data.text}`
           );
 
-          await Message.create({
-            sender: user.id,
+          let messageData = {
+            sender: data.sender._id,
             text: data.text,
-            recipient: data.recipient,
+            recipient: data.recipient._id,
             group: data.groupId || null,
-            type: data.recipient ? "user" : "group",
-          });
+            type: data.recipient._id ? "user" : "group",
+            seen: false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+
+          await messageService.createMessage(messageData);
 
           // Send to the recipient if available
-          if (userSockets[data.recipient]) {
-            userSockets[data.recipient].send(
+          if (userSockets[data.recipient._id]) {
+            userSockets[data.recipient._id].send(
               JSON.stringify({
                 type: "MESSAGE",
                 data: { ...data, text: data.text },

@@ -18,9 +18,10 @@ const HomePage = () => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState(null);
-  const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [lastMessages, setLastMessages] = useState({});
+  const [page, setPage] = useState(1);
   const limit = 10;
 
   const navigate = useNavigate();
@@ -42,6 +43,7 @@ const HomePage = () => {
         );
         setUsers(userList);
         console.log(userList);
+        fetchLastMessages(userList.items);
       } catch (error) {
         console.error("Error fetching users:", error);
       } finally {
@@ -51,6 +53,24 @@ const HomePage = () => {
 
     fetchUsers();
   }, [search, page]);
+
+  const fetchLastMessages = async (userList) => {
+    const newLastMessages = {};
+    for (const user of userList) {
+      try {
+        const response = await axios.get(
+          `${LOCAL_SERVER_URL}/messages/last-message?recipient=${user?._id}`
+        );
+        newLastMessages[user?._id] = response?.data;
+      } catch (error) {
+        console.error(
+          `Error fetching last message for user ${user?._id}:`,
+          error
+        );
+      }
+    }
+    setLastMessages(newLastMessages);
+  };
 
   function handleLogOut() {
     localStorageService.clear();
@@ -103,6 +123,7 @@ const HomePage = () => {
             {users?.items.map((user, index) => (
               <Link
                 to={`/chat/${user?._id}/${user?.name}`}
+                key={index}
                 style={{
                   textDecoration: "none",
                   display: "block",
@@ -110,7 +131,6 @@ const HomePage = () => {
                 }}
               >
                 <Grid
-                  key={index}
                   container
                   xl={12}
                   p={3}
@@ -145,6 +165,16 @@ const HomePage = () => {
                       }}
                     >
                       {user?.email}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        textAlign: "left",
+                        fontSize: "0.7rem",
+                        opacity: "0.6",
+                        color: "lightgray",
+                      }}
+                    >
+                      {lastMessages[user._id]?.text || "No message available"}
                     </Typography>
                   </Grid>
                 </Grid>

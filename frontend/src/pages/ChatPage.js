@@ -1,13 +1,23 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import CryptoJS from "crypto-js";
 import localStorageService from "../utils/localStorage";
 import { useNavigate, useParams } from "react-router-dom";
 import { JWD_SECRET } from "../config/environment";
 import { jwtDecode } from "jwt-decode";
-import { Grid, Paper, Typography, TextField, Button, Box } from "@mui/material";
+import {
+  Grid,
+  Paper,
+  Typography,
+  TextField,
+  Button,
+  Box,
+  CircularProgress,
+} from "@mui/material";
 import CustomTextField from "../components/customTextField";
 import SendIcon from "@mui/icons-material/Send";
+import { LOCAL_SERVER_URL, LOCAL_WS_SERVER_URL } from "../config/apiEndpoints";
+import { fetchItems } from "../api/api";
 
 const ChatPage = () => {
   const displayHeight = window.innerHeight - window.innerHeight * 0.1;
@@ -19,14 +29,29 @@ const ChatPage = () => {
   const [token, setToken] = useState(null);
   const { recipient, name } = useParams(); // Directly get recipient from useParams
   const [recipientId, setRecipientId] = useState("");
+  const [recipientName, setRecipientName] = useState("");
   const [userId, setUserId] = useState("");
   const [senderName, setSenderName] = useState("");
+  const messagesEndRef = useRef(null);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [fetch, setFetch] = useState(false);
+  const limit = 10;
 
   const navigate = useNavigate();
 
   useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
     console.log(recipient);
     setRecipientId(recipient);
+    setRecipientName(name);
     const storedToken = localStorageService.getItem("token");
     const userName = localStorageService.getItem("userName");
     setToken(storedToken);
@@ -35,7 +60,9 @@ const ChatPage = () => {
     setUserId(user?.userId);
     setSenderName(userName);
 
-    const socket = new WebSocket("ws://192.168.1.187:8000");
+    setFetch(true);
+
+    const socket = new WebSocket(LOCAL_WS_SERVER_URL);
     setWs(socket);
 
     socket.onopen = () => {
@@ -64,7 +91,7 @@ const ChatPage = () => {
             break;
           }
           case "MESSAGE": {
-            console.log(message.data.recipient);
+            console.log(message.data);
             console.log(recipientId);
 
             // Decrypt message using the stored encryption key
@@ -73,7 +100,7 @@ const ChatPage = () => {
               "encryptionKey"
             ).toString(CryptoJS.enc.Utf8);
 
-            if (message.data.sender === recipientId) {
+            if (message.data.sender._id === recipientId) {
               setMessages((prevMessages) => [
                 ...prevMessages,
                 { ...message.data, text: decryptedMessage },
@@ -93,6 +120,36 @@ const ChatPage = () => {
     };
   }, [token]);
 
+  useEffect(() => {
+    const fetchChatHistory = async () => {
+      try {
+        const response = await fetchItems(
+          `${LOCAL_SERVER_URL}/messages/history?limit=${limit}&page=${page}&sender=${userId}&recipient=${recipientId}`
+        );
+
+        if (response && Array.isArray(response)) {
+          // Decrypt all messages in the response
+          const decryptedMessages = response.map((message) => {
+            const decryptedText = CryptoJS.AES.decrypt(
+              message.text,
+              "encryptionKey"
+            ).toString(CryptoJS.enc.Utf8);
+            return { ...message, text: decryptedText };
+          });
+
+          // Update the state with the new decrypted messages
+          setMessages(decryptedMessages);
+        }
+
+        console.log(messages);
+      } catch (error) {
+        console.error("Error fetching chat history:", error);
+      }
+    };
+
+    fetchChatHistory();
+  }, [page, fetch]);
+
   function handleLogOut() {
     localStorageService.clear();
     navigate("/login");
@@ -110,14 +167,22 @@ const ChatPage = () => {
         type: "MESSAGE",
         data: {
           text: encryptedText,
-          recipient: recipientId,
-          sender: userId,
+          recipient: {
+            _id: recipientId,
+            name: recipientName,
+          },
+          sender: {
+            _id: userId,
+            name: senderName,
+          },
           senderName,
           groupId: null,
           type: "user",
         },
         token,
       };
+
+      console.log(message);
 
       ws.send(JSON.stringify(message));
 
@@ -130,34 +195,11 @@ const ChatPage = () => {
     }
   };
 
-  // return (
-  //   <div style={{ padding: 20 }}>
-  //     <div
-  //       style={{
-  //         border: "1px solid #ccc",
-  //         padding: 10,
-  //         height: 300,
-  //         overflowY: "scroll",
-  //         marginBottom: 10,
-  //       }}
-  //     >
-  //       {messages.map((msg, index) => (
-  //         <div key={index}>{msg.text}</div>
-  //       ))}
-  //     </div>
-  //     <input
-  //       type="text"
-  //       value={input}
-  //       onChange={(e) => setInput(e.target.value)}
-  //       placeholder="Type a message..."
-  //       style={{ width: "80%", padding: 8 }}
-  //     />
-  //     <button onClick={sendMessage} style={{ padding: 8 }}>
-  //       Send
-  //     </button>
-  //   </div>
-  // );
-  return (
+  return loading ? (
+    <div className="align-middle">
+      <CircularProgress sx={{ color: "rgba(107,138,253,255)" }} />
+    </div>
+  ) : (
     <Grid container xl={12} md={12} spacing={1} mt={1}>
       <Grid xl={3} md={3}></Grid>
       <Grid container xl={6} md={6}>
@@ -193,13 +235,14 @@ const ChatPage = () => {
                 overflowY: "auto",
                 position: "relative",
               }}
+              p={2}
             >
               {messages.map((msg, index) => (
                 <Grid
                   item
                   container
                   justifyContent={
-                    userId === msg?.sender ? "flex-end" : "flex-start"
+                    userId === msg?.sender?._id ? "flex-end" : "flex-start"
                   }
                   xl={12}
                   key={index}
@@ -212,7 +255,7 @@ const ChatPage = () => {
                     className="fade-slide-up"
                     sx={{
                       background:
-                        userId === msg?.sender
+                        userId === msg?.sender?._id
                           ? "rgba(107,138,253,255)"
                           : "rgba(46,51,61,255)",
                       fontSize: "1rem",
@@ -226,12 +269,36 @@ const ChatPage = () => {
                         fontSize: "0.6rem",
                       }}
                     >
-                      {msg?.senderName}
+                      {msg?.sender?.name}
                     </Typography>
-                    {msg?.text}
+                    <Typography
+                      sx={{
+                        fontSize: "1rem",
+                      }}
+                    >
+                      {msg?.text}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontSize: "0.5rem",
+                        opacity: "0.6",
+                        textAlign: "right",
+                      }}
+                    >
+                      {new Date(msg?.updatedAt).toLocaleString("en-US", {
+                        timeZone: "Asia/Colombo",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })}
+                    </Typography>
                   </Grid>
                 </Grid>
               ))}
+              <div ref={messagesEndRef} />
             </Grid>
 
             <Grid container xl={12}>
@@ -270,14 +337,3 @@ const ChatPage = () => {
 };
 
 export default ChatPage;
-
-// [
-//   {
-//     text: "aefaef",
-//     recipient: "66cf6a15dceafc75c4e01a09",
-//     sender: "66d234bbc80866e5e789ddd9",
-//     senderName: "Malithi",
-//     groupId: null,
-//     type: "user",
-//   }
-// ];

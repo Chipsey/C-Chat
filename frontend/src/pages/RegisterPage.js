@@ -63,7 +63,7 @@ const RegisterPage = () => {
           p: 3,
           borderRadius: 5,
           boxShadow: 3,
-          bgcolor: "background.paper",
+          bgcolor: "rgba(32,35,41,255)",
           width: "100%",
           maxWidth: 400,
         }}

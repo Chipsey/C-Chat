@@ -4,7 +4,7 @@ const logger = require("../utils/logger");
 const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    console.log({ name, email, password });
+    logger({ name, email, password });
     const auth = await userService.registerUser({ name, email, password });
     res.status(201).json({ auth });
   } catch (error) {
