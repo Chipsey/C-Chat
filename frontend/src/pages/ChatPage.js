@@ -36,7 +36,7 @@ const ChatPage = () => {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [fetch, setFetch] = useState(false);
-  const limit = 10;
+  const limit = 30;
 
   const navigate = useNavigate();
 
@@ -102,8 +102,8 @@ const ChatPage = () => {
 
             if (message.data.sender._id === recipientId) {
               setMessages((prevMessages) => [
-                ...prevMessages,
                 { ...message.data, text: decryptedMessage },
+                ...prevMessages,
               ]);
             }
             break;
@@ -178,6 +178,7 @@ const ChatPage = () => {
           senderName,
           groupId: null,
           type: "user",
+          updatedAt: new Date(),
         },
         token,
       };
@@ -187,8 +188,8 @@ const ChatPage = () => {
       ws.send(JSON.stringify(message));
 
       setMessages((prevMessages) => [
-        ...prevMessages,
         { ...message.data, text: input },
+        ...prevMessages,
       ]);
 
       setInput("");
@@ -201,15 +202,15 @@ const ChatPage = () => {
     </div>
   ) : (
     <Grid container xl={12} md={12} spacing={1} mt={1}>
-      <Grid xl={3} md={3}></Grid>
-      <Grid container xl={6} md={6}>
+      <Grid xl={2} md={2}></Grid>
+      <Grid container xl={8} md={8}>
         <Box
           sx={{
             width: "100%",
             height: displayHeight,
             p: 5,
             borderRadius: 7,
-            bgcolor: "rgba(32,35,41,255)",
+            bgcolor: "rgba(32,0,41,0)",
             gap: 2,
           }}
         >
@@ -237,67 +238,80 @@ const ChatPage = () => {
               }}
               p={2}
             >
-              {messages.map((msg, index) => (
-                <Grid
-                  item
-                  container
-                  justifyContent={
-                    userId === msg?.sender?._id ? "flex-end" : "flex-start"
-                  }
-                  xl={12}
-                  key={index}
-                  mb={1}
-                >
+              {messages
+                .slice()
+                .reverse()
+                .map((msg, index) => (
                   <Grid
                     item
-                    xl={5.5}
-                    md={5.5}
-                    className="fade-slide-up"
-                    sx={{
-                      background:
-                        userId === msg?.sender?._id
-                          ? "rgba(107,138,253,255)"
-                          : "rgba(46,51,61,255)",
-                      fontSize: "1rem",
-                    }}
-                    p={2}
-                    borderRadius={3}
+                    container
+                    justifyContent={
+                      userId === msg?.sender?._id ? "flex-end" : "flex-start"
+                    }
+                    xl={12}
+                    key={index}
+                    mb={1}
                   >
-                    <Typography
-                      mb={1}
+                    <Grid
+                      item
+                      xl={5.5}
+                      md={5.5}
+                      className="fade-slide-up"
                       sx={{
-                        fontSize: "0.6rem",
-                      }}
-                    >
-                      {msg?.sender?.name}
-                    </Typography>
-                    <Typography
-                      sx={{
+                        background:
+                          userId === msg?.sender?._id
+                            ? "rgba(213,229,242,255)"
+                            : "rgba(255,255,255,255)",
                         fontSize: "1rem",
+                        borderRadius:
+                          userId === msg?.sender?._id
+                            ? "1rem 1rem 0rem 1rem"
+                            : "1rem 1rem 1rem 0rem",
                       }}
+                      p={2}
                     >
-                      {msg?.text}
-                    </Typography>
-                    <Typography
-                      sx={{
-                        fontSize: "0.5rem",
-                        opacity: "0.6",
-                        textAlign: "right",
-                      }}
+                      <Typography
+                        mb={1}
+                        sx={{
+                          fontSize: "0.6rem",
+                        }}
+                      >
+                        {msg?.sender?.name}
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontSize: "1rem",
+                        }}
+                      >
+                        {msg?.text}
+                      </Typography>
+                    </Grid>
+                    <Grid
+                      container
+                      justifyContent={
+                        userId === msg?.sender?._id ? "flex-end" : "flex-start"
+                      }
                     >
-                      {new Date(msg?.updatedAt).toLocaleString("en-US", {
-                        timeZone: "Asia/Colombo",
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        second: "2-digit",
-                      })}
-                    </Typography>
+                      <Typography
+                        mt={0.5}
+                        sx={{
+                          fontSize: "0.5rem",
+                          opacity: "0.6",
+                          textAlign: "right",
+                        }}
+                      >
+                        {new Date(msg?.updatedAt).toLocaleString("en-US", {
+                          timeZone: "Asia/Colombo",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </Typography>
+                    </Grid>
                   </Grid>
-                </Grid>
-              ))}
+                ))}
               <div ref={messagesEndRef} />
             </Grid>
 
@@ -318,11 +332,11 @@ const ChatPage = () => {
                   fullWidth
                   sx={{
                     height: "3rem",
-                    background: "rgba(107,138,253,255)",
                     marginTop: "0.5rem",
-                    color: "lightgrey",
+                    color: "white",
                     borderRadius: "0rem 0.5rem 0.5rem 0rem",
                   }}
+                  className="background-color-primary"
                   onClick={sendMessage}
                 >
                   <SendIcon />

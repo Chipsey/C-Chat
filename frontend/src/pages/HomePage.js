@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import jwtDecode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import { fetchItems } from "../api/api";
 import CryptoJS from "crypto-js";
 import localStorageService from "../utils/localStorage";
@@ -22,6 +22,7 @@ const HomePage = () => {
   const [search, setSearch] = useState("");
   const [lastMessages, setLastMessages] = useState({});
   const [page, setPage] = useState(1);
+  const [sender, setSender] = useState("");
   const limit = 10;
 
   const navigate = useNavigate();
@@ -33,6 +34,16 @@ const HomePage = () => {
 
     return () => clearTimeout(delayDebounceFn);
   }, [searchInput]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const storedToken = await localStorageService.getItem("token");
+      setToken(storedToken);
+      const user = jwtDecode(storedToken);
+      setSender(user?.userId);
+    };
+    fetchUsers();
+  }, []);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -59,7 +70,7 @@ const HomePage = () => {
     for (const user of userList) {
       try {
         const response = await axios.get(
-          `${LOCAL_SERVER_URL}/messages/last-message?recipient=${user?._id}`
+          `${LOCAL_SERVER_URL}/messages/last-message?recipient=${user?._id}&sender=${sender}`
         );
         newLastMessages[user?._id] = response?.data;
       } catch (error) {
@@ -91,16 +102,17 @@ const HomePage = () => {
       <CircularProgress sx={{ color: "rgba(107,138,253,255)" }} />
     </div>
   ) : (
-    <Grid container xl={12} md={12} spacing={1} mt={1}>
-      <Grid xl={3} md={3}></Grid>
-      <Grid xl={6} md={6}>
+    <Grid container xl={12} md={12} mt={1}>
+      <Grid xl={2} md={2}></Grid>
+
+      <Grid xl={8} md={8}>
         <Box
           sx={{
             width: "100%",
             height: displayHeight,
             p: 5,
             borderRadius: 7,
-            bgcolor: "rgba(32,35,41,255)",
+            bgcolor: "rgba(32,0,41,0)",
             gap: 2,
           }}
         >
@@ -120,68 +132,75 @@ const HomePage = () => {
               overflowY: "auto",
             }}
           >
-            {users?.items.map((user, index) => (
-              <Link
-                to={`/chat/${user?._id}/${user?.name}`}
-                key={index}
-                style={{
-                  textDecoration: "none",
-                  display: "block",
-                  color: "white",
-                }}
-              >
-                <Grid
-                  container
-                  xl={12}
-                  p={3}
-                  borderRadius={4}
-                  sx={{
-                    "&:hover": {
-                      backgroundColor: "rgba(46,51,61,255)",
-                      cursor: "pointer",
-                    },
-                    transition: "background-color 300ms ease",
-                  }}
-                >
-                  <Grid xl={1} mr={1}>
-                    <Avatar
+            {users?.items.map(
+              (user, index) =>
+                user?._id != sender && (
+                  <Link
+                    to={`/chat/${user?._id}/${user?.name}`}
+                    key={index}
+                    style={{
+                      textDecoration: "none",
+                      display: "block",
+                      color: "black",
+                    }}
+                  >
+                    <Grid
+                      container
+                      xl={12}
+                      p={3}
+                      borderRadius={4}
                       sx={{
-                        backgroundColor: getRandomColor(),
-                        borderRadius: "0.5rem",
+                        "&:hover": {
+                          backgroundColor: "rgba(213, 229, 242, 255)",
+                          cursor: "pointer",
+                        },
+                        transition: "background-color 300ms ease",
                       }}
                     >
-                      {user?.name?.charAt(0).toUpperCase()}
-                    </Avatar>
-                  </Grid>
-                  <Grid xl={10}>
-                    <Typography sx={{ textAlign: "left" }}>
-                      {user?.name}
-                    </Typography>
-                    <Typography
-                      sx={{
-                        textAlign: "left",
-                        fontSize: "0.7rem",
-                        opacity: "0.7",
-                      }}
-                    >
-                      {user?.email}
-                    </Typography>
-                    <Typography
-                      sx={{
-                        textAlign: "left",
-                        fontSize: "0.7rem",
-                        opacity: "0.6",
-                        color: "lightgray",
-                      }}
-                    >
-                      {lastMessages[user._id]?.text || "No message available"}
-                    </Typography>
-                  </Grid>
-                </Grid>
-              </Link>
-            ))}
+                      <Grid xl={1} mr={5}>
+                        <Avatar
+                          sx={{
+                            backgroundColor: "white",
+                            borderRadius: "0.5rem",
+                          }}
+                          className="color-primary fw-600"
+                        >
+                          {user?.name?.charAt(0).toUpperCase()}
+                        </Avatar>
+                      </Grid>
+                      <Grid xl={9}>
+                        <Typography sx={{ textAlign: "left" }}>
+                          {user?.name}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            textAlign: "left",
+                            fontSize: "0.7rem",
+                            opacity: "0.7",
+                          }}
+                        >
+                          {user?.email}
+                        </Typography>
+                      </Grid>
+                    </Grid>
+                  </Link>
+                )
+            )}
           </Box>
         </Box>
+      </Grid>
+      <Grid xl={8} md={4}>
+        <Box
+          sx={{
+            width: "100%",
+            height: displayHeight,
+            p: 5,
+            borderRadius: 7,
+            bgcolor: "rgba(32,0,41,0)",
+            gap: 2,
+            overflow: "clip",
+          }}
+        ></Box>
       </Grid>
     </Grid>
   );

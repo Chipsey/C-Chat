@@ -88,7 +88,7 @@ exports.deleteMessage = async (req, res) => {
 // Controller to get the last message for a specific recipient or group
 exports.getLastMessage = async (req, res) => {
   try {
-    const { recipient, group } = req.query;
+    const { recipient, sender, group } = req.query;
 
     if (!recipient && !group) {
       return res
@@ -98,6 +98,7 @@ exports.getLastMessage = async (req, res) => {
 
     const lastMessage = await messageService.getLastMessageByRecipient({
       recipient,
+      sender,
       group,
     });
 

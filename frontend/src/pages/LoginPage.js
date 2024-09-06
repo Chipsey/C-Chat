@@ -58,11 +58,11 @@ const LoginPage = () => {
       }}
     >
       <Box
+        className="background-color-primary"
         sx={{
           p: 3,
           borderRadius: 5,
           boxShadow: 3,
-          bgcolor: "rgba(32,35,41,255)",
           width: "100%",
           maxWidth: 400,
         }}

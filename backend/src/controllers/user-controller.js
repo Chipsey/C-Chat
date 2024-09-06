@@ -2,10 +2,22 @@ const userService = require("../services/user-service");
 const logger = require("../utils/logger");
 
 const registerUser = async (req, res) => {
+  function capitalizeEachWord(sentence) {
+    return sentence
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize each word
+      .join(" ");
+  }
   try {
     const { name, email, password } = req.body;
     logger({ name, email, password });
-    const auth = await userService.registerUser({ name, email, password });
+    const lowerCasedEmail = email.toLowerCase();
+    const capitalizedName = capitalizeEachWord(name);
+    const auth = await userService.registerUser({
+      name: capitalizedName,
+      email: lowerCasedEmail,
+      password,
+    });
     res.status(201).json({ auth });
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -16,7 +28,8 @@ const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
     console.log({ email, password });
-    const auth = await userService.loginUser({ email, password });
+    const lowerCasedEmail = email.toLowerCase();
+    const auth = await userService.loginUser({ lowerCasedEmail, password });
     res.status(200).json({ auth });
   } catch (error) {
     res.status(400).json({ message: error.message });

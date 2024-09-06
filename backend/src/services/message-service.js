@@ -55,7 +55,7 @@ exports.getChatHistory = async (sender, recipient, page = 1, limit = 20) => {
     };
 
     const messages = await Message.find(query)
-      .sort({ createdAt: 1 })
+      .sort({ createdAt: -1 })
       .limit(limit)
       .skip((page - 1) * limit)
       .populate("sender", "-password")
@@ -74,11 +74,27 @@ exports.getMessageById = async (id) => {
   return await Message.findById(id).populate("sender recipient group");
 };
 
-// Get the last message for a specific recipient (or group)
-exports.getLastMessageByRecipient = async ({ recipient, group }) => {
-  const query = {};
+// Get the last message between a sender and recipient (or group)
+exports.getLastMessageByRecipient = async ({ recipient, sender, group }) => {
+  const senderId = mongoose.Types.ObjectId.isValid(sender)
+    ? new mongoose.Types.ObjectId(sender)
+    : null;
+  const recipientId = mongoose.Types.ObjectId.isValid(recipient)
+    ? new mongoose.Types.ObjectId(recipient)
+    : null;
 
-  if (recipient) query.recipient = recipient;
+  if (!senderId || !recipientId) {
+    throw new Error("Invalid sender or recipient ID");
+  }
+
+  const query = {
+    $or: [
+      { sender: senderId, recipient: recipientId },
+      { sender: recipientId, recipient: senderId },
+    ],
+  };
+
+  // If a group is provided, modify the query to handle group messages
   if (group) query.group = group;
 
   return await Message.findOne(query)

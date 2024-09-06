@@ -19,15 +19,15 @@ const CustomTextField = ({ label, name, value, onChange, type, required }) => {
         sx: {
           borderRadius: "0.5rem",
           fontSize: "0.7rem",
-          color: "white",
+          background: "white",
           "& .MuiOutlinedInput-notchedOutline": {
-            borderColor: "#313640", // Set the border color to grey
+            borderColor: "rgba(0,0,0,0)",
           },
           "&:hover .MuiOutlinedInput-notchedOutline": {
-            borderColor: "#3c424f", // Optional: Change border color on hover
+            borderColor: "rgba(0,0,0,0)",
           },
           "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-            borderColor: "#454c5c", // Optional: Change border color when focused
+            borderColor: "rgba(0,0,0,0.05)",
           },
         },
       }}
