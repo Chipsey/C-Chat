@@ -5,9 +5,17 @@ import { fetchItems } from "../api/api";
 import CryptoJS from "crypto-js";
 import localStorageService from "../utils/localStorage";
 import { Link, useNavigate } from "react-router-dom";
-import { Avatar, Box, CircularProgress, Grid, Typography } from "@mui/material";
+import {
+  Avatar,
+  Box,
+  CircularProgress,
+  Grid,
+  Icon,
+  Typography,
+} from "@mui/material";
 import CustomTextField from "../components/customTextField";
 import { LOCAL_SERVER_URL } from "../config/apiEndpoints";
+import NavBar from "../components/navBar";
 
 const HomePage = () => {
   const displayHeight = window.innerHeight - window.innerHeight * 0.1;
@@ -23,6 +31,8 @@ const HomePage = () => {
   const [lastMessages, setLastMessages] = useState({});
   const [page, setPage] = useState(1);
   const [sender, setSender] = useState("");
+  const [userName, setUserName] = useState("");
+  const [profilePicture, setProfilePicture] = useState(null);
   const limit = 10;
 
   const navigate = useNavigate();
@@ -38,6 +48,11 @@ const HomePage = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       const storedToken = await localStorageService.getItem("token");
+      const name = await localStorageService.getItem("userName");
+      const profilePicture =
+        await localStorageService.getItem("profilePicture");
+      setProfilePicture(profilePicture);
+      setUserName(name);
       setToken(storedToken);
       const user = jwtDecode(storedToken);
       setSender(user?.userId);
@@ -54,7 +69,7 @@ const HomePage = () => {
         );
         setUsers(userList);
         console.log(userList);
-        fetchLastMessages(userList.items);
+        // fetchLastMessages(userList.items);
       } catch (error) {
         console.error("Error fetching users:", error);
       } finally {
@@ -65,47 +80,47 @@ const HomePage = () => {
     fetchUsers();
   }, [search, page]);
 
-  const fetchLastMessages = async (userList) => {
-    const newLastMessages = {};
-    for (const user of userList) {
-      try {
-        const response = await axios.get(
-          `${LOCAL_SERVER_URL}/messages/last-message?recipient=${user?._id}&sender=${sender}`
-        );
-        newLastMessages[user?._id] = response?.data;
-      } catch (error) {
-        console.error(
-          `Error fetching last message for user ${user?._id}:`,
-          error
-        );
-      }
-    }
-    setLastMessages(newLastMessages);
-  };
+  // const fetchLastMessages = async (userList) => {
+  //   const newLastMessages = {};
+  //   for (const user of userList) {
+  //     try {
+  //       const response = await axios.get(
+  //         `${LOCAL_SERVER_URL}/messages/last-message?recipient=${user?._id}&sender=${sender}`
+  //       );
+  //       newLastMessages[user?._id] = response?.data;
+  //     } catch (error) {
+  //       console.error(
+  //         `Error fetching last message for user ${user?._id}:`,
+  //         error
+  //       );
+  //     }
+  //   }
+  //   setLastMessages(newLastMessages);
+  // };
 
   function handleLogOut() {
     localStorageService.clear();
     navigate("/login");
   }
 
-  const getRandomColor = () => {
-    const letters = "0123456789ABCDEF";
-    let color = "#";
-    for (let i = 0; i < 6; i++) {
-      color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
-  };
+  const buttons = [
+    { label: "Chat", onClick: () => console.log("Home clicked"), active: true },
+    { label: "Group", onClick: () => console.log("Profile clicked") },
+    { label: "", onClick: () => {} },
+    { label: "Logout", onClick: () => handleLogOut() },
+  ];
 
   return loading ? (
     <div className="align-middle">
       <CircularProgress sx={{ color: "rgba(107,138,253,255)" }} />
     </div>
   ) : (
-    <Grid container xl={12} md={12} mt={1}>
-      <Grid xl={2} md={2}></Grid>
-
-      <Grid xl={8} md={8}>
+    <Grid container xl={12} md={12}>
+      <Grid container xl={12}>
+        <NavBar buttons={buttons} />
+      </Grid>
+      <Grid xl={1} md={2}></Grid>
+      <Grid xl={6} md={8}>
         <Box
           sx={{
             width: "100%",
@@ -189,18 +204,46 @@ const HomePage = () => {
           </Box>
         </Box>
       </Grid>
-      <Grid xl={8} md={4}>
+      <Grid container xl={5} p={7}>
         <Box
           sx={{
             width: "100%",
-            height: displayHeight,
-            p: 5,
+            p: 2,
             borderRadius: 7,
-            bgcolor: "rgba(32,0,41,0)",
             gap: 2,
-            overflow: "clip",
           }}
-        ></Box>
+        >
+          <Grid container xl={12}>
+            <Grid
+              xl={12}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              mb={1}
+            >
+              <Avatar
+                sx={{
+                  backgroundColor: "white",
+                  width: 200,
+                  height: 200,
+                  color: "black",
+                  fontSize: "5rem",
+                }}
+                src={profilePicture}
+              ></Avatar>
+            </Grid>
+            <Grid xl={12}>
+              <Typography
+                variant="h1"
+                sx={{ textAlign: "center", fontSize: "1.5rem" }}
+              >
+                {userName}
+              </Typography>
+            </Grid>
+          </Grid>
+        </Box>
       </Grid>
     </Grid>
   );

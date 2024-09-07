@@ -1,4 +1,5 @@
 import axios from "axios";
+import localStorageService from "../utils/localStorage";
 
 const API_URL = "http://localhost:8000/api"; // Update this to your API base URL
 
@@ -9,7 +10,20 @@ const api = axios.create({
   },
 });
 
-// Create
+// Add a request interceptor to include the token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorageService.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 export const createItem = async (endpoint, data) => {
   try {
     const response = await api.post(endpoint, data);

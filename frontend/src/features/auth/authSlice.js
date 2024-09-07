@@ -12,6 +12,10 @@ export const loginUser = createAsyncThunk(
       localStorageService.setItem("token", response?.data?.auth?.token);
       localStorageService.setItem("userName", response?.data?.auth?.userName);
       localStorageService.setItem("userEmail", response?.data?.auth?.userEmail);
+      localStorageService.setItem(
+        "profilePicture",
+        response?.data?.auth?.profilePicture
+      );
       return response.data.message;
     } catch (error) {
       const errorMessage =
@@ -30,6 +34,10 @@ export const register = createAsyncThunk(
       localStorageService.setItem("token", response?.data?.auth?.token);
       localStorageService.setItem("userName", response?.data?.auth?.userName);
       localStorageService.setItem("userEmail", response?.data?.auth?.userEmail);
+      localStorageService.setItem(
+        "profilePicture",
+        response?.data?.auth?.profilePicture
+      );
       return response.data.message;
     } catch (error) {
       const errorMessage =

@@ -7,8 +7,12 @@ const create = async (Model, data) => {
   }
 };
 
-const readAll = async (Model, { limit, page, search, searchFields }) => {
+const readAll = async (
+  Model,
+  { limit, page, search, searchFields, projection = {} }
+) => {
   try {
+    // Build search query if search term is provided
     const query = search
       ? {
           $or: searchFields.map((field) => ({
@@ -17,14 +21,22 @@ const readAll = async (Model, { limit, page, search, searchFields }) => {
         }
       : {};
 
-    const items = await Model.find(query)
+    // Fetch items with pagination and projection
+    const items = await Model.find(query, projection)
       .limit(parseInt(limit))
-      .skip((parseInt(page) - 1) * parseInt(limit));
+      .skip((parseInt(page) - 1) * parseInt(limit))
+      .exec();
 
-    const totalItems = await Model.countDocuments(query);
+    // Count total documents matching the query
+    const totalItems = await Model.countDocuments(query).exec();
     const totalPages = Math.ceil(totalItems / parseInt(limit));
 
-    return { items, currentPage: parseInt(page), totalPages, totalItems };
+    return {
+      items,
+      currentPage: parseInt(page),
+      totalPages,
+      totalItems,
+    };
   } catch (error) {
     throw new Error(`Error fetching documents: ${error.message}`);
   }
