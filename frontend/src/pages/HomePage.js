@@ -11,11 +11,15 @@ import {
   CircularProgress,
   Grid,
   Icon,
+  IconButton,
   Typography,
 } from "@mui/material";
 import CustomTextField from "../components/customTextField";
 import { LOCAL_SERVER_URL } from "../config/apiEndpoints";
 import NavBar from "../components/navBar";
+
+import EditIcon from "@mui/icons-material/Edit";
+import Profile from "../components/profile";
 
 const HomePage = () => {
   const displayHeight = window.innerHeight - window.innerHeight * 0.1;
@@ -33,6 +37,7 @@ const HomePage = () => {
   const [sender, setSender] = useState("");
   const [userName, setUserName] = useState("");
   const [profilePicture, setProfilePicture] = useState(null);
+  const [profilePictureSaved, setProfilePictureSaved] = useState(true);
   const limit = 10;
 
   const navigate = useNavigate();
@@ -103,6 +108,22 @@ const HomePage = () => {
     navigate("/login");
   }
 
+  const handleProfilePictureChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePicture(reader.result);
+        setProfilePictureSaved(false);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleProfilePictureSave = () => {
+
+  };
+
   const buttons = [
     { label: "Chat", onClick: () => console.log("Home clicked"), active: true },
     { label: "Group", onClick: () => console.log("Profile clicked") },
@@ -119,7 +140,6 @@ const HomePage = () => {
       <Grid container xl={12}>
         <NavBar buttons={buttons} />
       </Grid>
-      <Grid xl={1} md={2}></Grid>
       <Grid xl={6} md={8}>
         <Box
           sx={{
@@ -131,6 +151,17 @@ const HomePage = () => {
             gap: 2,
           }}
         >
+          <Grid mb={2}>
+            <Typography variant="h2" sx={{ fontSize: "2rem" }}>
+              LinkSpeak Chat
+            </Typography>
+            <Typography
+              variant="h2"
+              sx={{ fontSize: "0.8rem", fontWeight: "300" }}
+            >
+              Upgrade Your Network with Link Speak Chat
+            </Typography>
+          </Grid>
           <Grid xl={12} md={12} mb={5}>
             <CustomTextField
               label="Search"
@@ -204,46 +235,14 @@ const HomePage = () => {
           </Box>
         </Box>
       </Grid>
-      <Grid container xl={5} p={7}>
-        <Box
-          sx={{
-            width: "100%",
-            p: 2,
-            borderRadius: 7,
-            gap: 2,
-          }}
-        >
-          <Grid container xl={12}>
-            <Grid
-              xl={12}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              mb={1}
-            >
-              <Avatar
-                sx={{
-                  backgroundColor: "white",
-                  width: 200,
-                  height: 200,
-                  color: "black",
-                  fontSize: "5rem",
-                }}
-                src={profilePicture}
-              ></Avatar>
-            </Grid>
-            <Grid xl={12}>
-              <Typography
-                variant="h1"
-                sx={{ textAlign: "center", fontSize: "1.5rem" }}
-              >
-                {userName}
-              </Typography>
-            </Grid>
-          </Grid>
-        </Box>
+      <Grid container xl={6} pl={20} pr={10} pt={10}>
+        <Profile
+          isEdit="true"
+          profilePictureSaved={profilePictureSaved}
+          onProfilePictureChange={handleProfilePictureChange}
+          userName={userName}
+          profilePicture={profilePicture}
+        />
       </Grid>
     </Grid>
   );

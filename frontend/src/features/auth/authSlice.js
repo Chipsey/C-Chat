@@ -47,6 +47,25 @@ export const register = createAsyncThunk(
   }
 );
 
+export const updateProfilePicture = createAsyncThunk(
+  "auth/profilePicture",
+  async (data, { rejectWithValue }) => {
+    try {
+      const response = await authAPI.updateProfilePicture(data);
+      // localStorageService.setItem(
+      //   "profilePicture",
+      //   response?.data?.auth?.profilePicture
+      // );
+      console.log(response.data);
+      return response.data.message;
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message || "An error occurred during login.";
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: "auth",
   initialState: {
@@ -82,6 +101,18 @@ const authSlice = createSlice({
         state.user = action.payload;
       })
       .addCase(register.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(updateProfilePicture.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateProfilePicture.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload;
+      })
+      .addCase(updateProfilePicture.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });

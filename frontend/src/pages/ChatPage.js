@@ -18,6 +18,7 @@ import CustomTextField from "../components/customTextField";
 import SendIcon from "@mui/icons-material/Send";
 import { LOCAL_SERVER_URL, LOCAL_WS_SERVER_URL } from "../config/apiEndpoints";
 import { fetchItems } from "../api/api";
+import Profile from "../components/profile";
 
 const ChatPage = () => {
   const displayHeight = window.innerHeight - window.innerHeight * 0.1;
@@ -202,7 +203,9 @@ const ChatPage = () => {
     </div>
   ) : (
     <Grid container xl={12} md={12} spacing={1} mt={1}>
-      <Grid xl={2} md={2}></Grid>
+      <Grid container xl={4} md={4} p={5}>
+        <Profile userName={name}></Profile>
+      </Grid>
       <Grid container xl={8} md={8}>
         <Box
           sx={{

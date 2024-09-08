@@ -22,6 +22,14 @@ const AppRoutes = () => {
           }
         />
         <Route
+          path="/"
+          element={
+            <PrivateRoute>
+              <HomePage />
+            </PrivateRoute>
+          }
+        />
+        <Route
           path="/chat/:recipient/:name"
           element={
             <PrivateRoute>
