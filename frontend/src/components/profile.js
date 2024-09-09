@@ -10,6 +10,7 @@ const Profile = ({
   profilePicture,
   userName,
   onProfilePictureChange,
+  handleProfilePictureSave,
 }) => {
   return (
     <Box
@@ -110,7 +111,7 @@ const Profile = ({
                 width: "1.5rem",
                 height: "1.5rem",
               }}
-              onClick={() => document.getElementById("upload-input").click()}
+              onClick={handleProfilePictureSave}
             >
               <CheckIcon sx={{ width: "1rem", height: "1rem" }} />
             </IconButton>

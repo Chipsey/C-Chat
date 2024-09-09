@@ -18,6 +18,10 @@ const authAPI = {
     );
     return response;
   },
+  updateProfilePicture: async (data) => {
+    const response = await axios.post(`${LOCAL_SERVER_URL}/files`, data);
+    return response;
+  },
 };
 
 export default authAPI;

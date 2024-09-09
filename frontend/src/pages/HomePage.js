@@ -20,6 +20,7 @@ import NavBar from "../components/navBar";
 
 import EditIcon from "@mui/icons-material/Edit";
 import Profile from "../components/profile";
+import authAPI from "../features/auth/authAPI";
 
 const HomePage = () => {
   const displayHeight = window.innerHeight - window.innerHeight * 0.1;
@@ -54,8 +55,9 @@ const HomePage = () => {
     const fetchUsers = async () => {
       const storedToken = await localStorageService.getItem("token");
       const name = await localStorageService.getItem("userName");
-      const profilePicture =
-        await localStorageService.getItem("profilePicture");
+      const profilePicture = await localStorageService.getItem(
+        "profilePicture"
+      );
       setProfilePicture(profilePicture);
       setUserName(name);
       setToken(storedToken);
@@ -120,8 +122,10 @@ const HomePage = () => {
     }
   };
 
-  const handleProfilePictureSave = () => {
-
+  const handleProfilePictureSave = async () => {
+    try {
+      const response = await authAPI.updateProfilePicture(); ////////////////////////////////////////////////////////////////// Here
+    } catch (error) {}
   };
 
   const buttons = [
@@ -242,6 +246,7 @@ const HomePage = () => {
           onProfilePictureChange={handleProfilePictureChange}
           userName={userName}
           profilePicture={profilePicture}
+          handleProfilePictureSave={handleProfilePictureSave}
         />
       </Grid>
     </Grid>
