@@ -1,7 +1,28 @@
 body {
   margin: 0;
   font-family: Nunito, sans-serif;
-  background-color: white;
+  background-color: rgba(250, 247, 246, 255);
+  color: rgba(18, 24, 40, 255);
+}
+
+.background-color-primary {
+  background-color: rgba(18, 24, 40, 255) !important;
+}
+
+.background-color-secondary {
+  background-color: rgba(250, 247, 246, 255) !important;
+}
+
+.background-color-option {
+  background-color: rgba(213, 229, 242, 255) !important;
+}
+
+.color-primary {
+  color: rgba(18, 24, 40, 255) !important;
+}
+
+.color-secondary {
+  color: rgba(250, 247, 246, 255) !important;
 }
 
 code {
@@ -692,6 +713,13 @@ code {
   vertical-align: text-bottom !important;
 }
 
+.align-middle {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  height: 100vh !important;
+}
+
 /* color data */
 
 .color-yellow {
@@ -710,15 +738,15 @@ code {
 
 /* Customize the scrollbar track */
 ::-webkit-scrollbar-track {
-  background: #070707;
+  background: rgba(250, 247, 246, 255);
   border-radius: 10px;
 }
 
 /* Customize the scrollbar thumb */
 ::-webkit-scrollbar-thumb {
-  background: #242424;
+  background: white;
   border-radius: 10px;
-  border: 3px solid #242424; /* Adds padding around the thumb */
+  border: 3px solid white; /* Adds padding around the thumb */
 }
 
 /* Customize the scrollbar thumb on hover */
@@ -769,9 +797,9 @@ code {
 
 /* Animation classes */
 .fade-slide-up {
-  animation: fadeInSlideUp 1s forwards;
+  animation: fadeInSlideUp 300ms forwards;
 }
 
 .fade-slide-down {
-  animation: fadeInSlideDown 1s forwards;
+  animation: fadeInSlideDown 300ms forwards;
 }

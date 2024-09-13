@@ -7,9 +7,36 @@ const create = async (Model, data) => {
   }
 };
 
-const readAll = async (Model) => {
+const readAll = async (
+  Model,
+  { limit, page, search, searchFields, projection = {} }
+) => {
   try {
-    return await Model.find();
+    // Build search query if search term is provided
+    const query = search
+      ? {
+          $or: searchFields.map((field) => ({
+            [field]: { $regex: search, $options: "i" },
+          })),
+        }
+      : {};
+
+    // Fetch items with pagination and projection
+    const items = await Model.find(query, projection)
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit))
+      .exec();
+
+    // Count total documents matching the query
+    const totalItems = await Model.countDocuments(query).exec();
+    const totalPages = Math.ceil(totalItems / parseInt(limit));
+
+    return {
+      items,
+      currentPage: parseInt(page),
+      totalPages,
+      totalItems,
+    };
   } catch (error) {
     throw new Error(`Error fetching documents: ${error.message}`);
   }

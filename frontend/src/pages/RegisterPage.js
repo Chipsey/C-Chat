@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { loginUser } from "../features/auth/authSlice";
+import { loginUser, register } from "../features/auth/authSlice";
 import {
   Container,
   TextField,
@@ -14,13 +14,14 @@ import { Link, useNavigate } from "react-router-dom";
 import localStorageService from "../utils/localStorage";
 import CustomTextField from "../components/customTextField";
 
-const LoginPage = () => {
+const RegisterPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [login, setLogin] = useState(false);
   const { user, loading, error } = useSelector((state) => state.auth);
 
   const [credentials, setCredentials] = useState({
+    name: "",
     email: "",
     password: "",
   });
@@ -43,7 +44,7 @@ const LoginPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    dispatch(loginUser(credentials));
+    dispatch(register(credentials));
     setLogin(true);
   };
 
@@ -58,7 +59,6 @@ const LoginPage = () => {
       }}
     >
       <Box
-        // className="background-color-primary"
         sx={{
           p: 3,
           width: "100%",
@@ -66,10 +66,18 @@ const LoginPage = () => {
         }}
       >
         <Typography variant="h5" align="center" gutterBottom>
-          Login
+          Register
         </Typography>
         <form onSubmit={handleSubmit}>
           <Box mb={3}>
+            <CustomTextField
+              label="User Name"
+              type="text"
+              name="name"
+              value={credentials.name}
+              onChange={handleChange}
+              required={true}
+            />
             <CustomTextField
               label="email"
               type="email"
@@ -103,7 +111,7 @@ const LoginPage = () => {
             {loading ? "Logging in..." : "Login"}
           </Button>
           <Link
-            to="/register"
+            to="/login"
             style={{ textDecoration: "none", color: "inherit" }}
           >
             <Typography
@@ -111,7 +119,7 @@ const LoginPage = () => {
               mt={1}
               sx={{ fontSize: "0.7rem", color: "green" }}
             >
-              Not registered yet?
+              Already a member?
             </Typography>
           </Link>
         </form>
@@ -120,4 +128,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default RegisterPage;
