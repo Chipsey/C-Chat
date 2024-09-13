@@ -7,6 +7,7 @@ import InversePrivateRoute from "./InversePrivateRoute";
 import RegisterPage from "../pages/RegisterPage";
 import ChatPage from "../pages/ChatPage";
 import HomePage from "../pages/HomePage";
+import Profile from "../components/profile";
 // import FavoritesPage from "../pages/FavoritesPage"; // Assuming you have this page
 
 const AppRoutes = () => {

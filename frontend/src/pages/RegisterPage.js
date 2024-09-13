@@ -61,9 +61,6 @@ const RegisterPage = () => {
       <Box
         sx={{
           p: 3,
-          borderRadius: 5,
-          boxShadow: 3,
-          bgcolor: "background.paper",
           width: "100%",
           maxWidth: 400,
         }}

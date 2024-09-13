@@ -36,15 +36,18 @@ const registerUser = async ({ name, email, password }) => {
 };
 
 const loginUser = async ({ email, password }) => {
+  logger(email);
   const user = await User.findOne({ email });
+  logger("user");
+  logger(user);
 
   if (!user) {
-    throw new Error("Invalid credentials");
+    throw new Error("Invalid credentials-1");
   }
 
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
-    throw new Error("Invalid credentials");
+    throw new Error("Invalid credentials-2");
   }
 
   const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
@@ -66,9 +69,27 @@ const addGroup = async ({ name, members }) => {
   return resp;
 };
 
-const getAllUsers = async () => {
-  const users = await crudService.readAll(User);
-  return users;
+const getAllUsers = async (queryParams) => {
+  const searchFields = ["name", "email"];
+  const projection = { password: 0 };
+  return await crudService.readAll(User, {
+    ...queryParams,
+    searchFields,
+    projection,
+  });
+};
+
+const updateProfilePicture = async (userId, profilePicture) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { profilePicture },
+      { new: true }
+    );
+    return user;
+  } catch (error) {
+    throw new Error(`Error updating profile picture: ${error.message}`);
+  }
 };
 
 module.exports = {
@@ -76,4 +97,5 @@ module.exports = {
   loginUser,
   getAllUsers,
   addGroup,
+  updateProfilePicture,
 };
