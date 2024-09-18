@@ -82,3 +82,15 @@ export const deleteItem = async (endpoint, id) => {
     );
   }
 };
+
+// Mark Seen
+export const setSeenMessages = async (endpoint) => {
+  try {
+    const response = await api.put(`${endpoint}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      `Error seenMessages item: ${error.response?.data?.message || error.message}`
+    );
+  }
+};

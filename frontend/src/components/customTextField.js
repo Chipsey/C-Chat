@@ -1,16 +1,32 @@
 import { TextField } from "@mui/material";
 
-const CustomTextField = ({ label, name, value, onChange, type, required }) => {
+const CustomTextField = ({
+  label,
+  name,
+  value,
+  onChange,
+  type,
+  required,
+  multiline = false,
+  onSubmit = () => {},
+}) => {
+  const handleKeyUp = (event) => {
+    if (event.key === "Enter" && (!required || value.trim() !== "")) {
+      onSubmit();
+    }
+  };
+
   return (
     <TextField
       fullWidth
+      multiline={multiline}
       label={label}
       name={name}
       type={type}
       value={value}
       margin="normal"
       onChange={onChange}
-      sx={{ height: "3rem" }}
+      onKeyUp={handleKeyUp}
       required={required}
       InputLabelProps={{
         sx: { fontSize: "0.7rem", color: "grey" },
@@ -20,6 +36,8 @@ const CustomTextField = ({ label, name, value, onChange, type, required }) => {
           borderRadius: "0.5rem",
           fontSize: "0.7rem",
           background: "white",
+          alignItems: "flex-start",
+          textAlign: "left",
           "& .MuiOutlinedInput-notchedOutline": {
             borderColor: "rgba(0,0,0,0)",
           },
@@ -27,7 +45,7 @@ const CustomTextField = ({ label, name, value, onChange, type, required }) => {
             borderColor: "rgba(0,0,0,0)",
           },
           "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-            borderColor: "rgba(0,0,0,0.05)",
+            borderColor: "rgba(0,0,0,0)",
           },
         },
       }}

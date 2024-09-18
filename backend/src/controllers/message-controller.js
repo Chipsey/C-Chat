@@ -1,4 +1,5 @@
 const messageService = require("../services/message-service");
+const logger = require("../utils/logger");
 
 // Create a new message
 exports.createMessage = async (req, res) => {
@@ -67,6 +68,30 @@ exports.updateMessage = async (req, res) => {
       return res.status(404).json({ message: "Message not found" });
     }
     res.status(200).json(message);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.seenMessage = async (req, res) => {
+  try {
+    const { senderId, recipientId } = req.params;
+
+    try {
+      const result = await messageService.seenMessage(
+        senderId,
+        recipientId
+      );
+
+      if (!result.success) {
+        return res.status(404).json({ message: result.message });
+      }
+
+      res.status(200).json({ message: result.message });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Server error." });
+    }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

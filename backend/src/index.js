@@ -70,7 +70,7 @@ wss.on("connection", (ws) => {
             data.recipient._id = new ObjectId(data.recipient._id);
           }
 
-          console.log(`Received Message: ${data.text}`);
+          console.log(`Received Message: ${data}`);
 
           // Create message data for saving
           let messageData = {
@@ -79,9 +79,6 @@ wss.on("connection", (ws) => {
             recipient: data.recipient._id,
             group: data.groupId || null,
             type: data.recipient._id ? "user" : "group", // Determine message type
-            seen: false,
-            createdAt: new Date(),
-            updatedAt: new Date(),
           };
 
           // Save message to the database
@@ -92,18 +89,52 @@ wss.on("connection", (ws) => {
             userSockets[data.recipient._id].send(
               JSON.stringify({
                 type: "MESSAGE",
-                data: { ...data, text: data.text },
+                data: {
+                  ...data,
+                  text: data.text,
+                },
+              })
+            );
+            messageService.seenMessage(data.sender._id, data.recipient._id);
+            // Echo the message back to the sender
+            ws.send(
+              JSON.stringify({
+                type: "MESSAGE",
+                data: {
+                  ...data,
+                  text: data.text,
+                  seen_by: [{ user_id: data.recipient._id, date: new Date() }],
+                },
+              })
+            );
+          } else {
+            ws.send(
+              JSON.stringify({
+                type: "MESSAGE",
+                data: {
+                  ...data,
+                  text: data.text,
+                  seen_by: [],
+                },
               })
             );
           }
 
-          // Echo the message back to the sender
-          ws.send(
-            JSON.stringify({
-              type: "MESSAGE",
-              data: { ...data, text: data.text },
-            })
+          break;
+        }
+        case "CONNECTION": {
+          console.log(
+            `Received Seen Message------------------: ${JSON.stringify(data)}`
           );
+
+          if (userSockets[data.recipient._id]) {
+            userSockets[data.recipient._id].send(
+              JSON.stringify({
+                type: "SEEN",
+                data,
+              })
+            );
+          }
           break;
         }
       }

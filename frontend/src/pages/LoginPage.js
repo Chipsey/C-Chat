@@ -92,16 +92,23 @@ const LoginPage = () => {
               {error}
             </Alert>
           )}
-          <Button
-            type="submit"
-            variant="contained"
-            color="success"
-            fullWidth
-            disabled={loading}
-            startIcon={loading && <CircularProgress size={20} />}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              mb: 2,
+            }}
           >
-            {loading ? "Logging in..." : "Login"}
-          </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              color="success"
+              disabled={loading}
+              startIcon={loading && <CircularProgress size={20} />}
+            >
+              {loading ? "Logging in..." : "Login"}
+            </Button>
+          </Box>
           <Link
             to="/register"
             style={{ textDecoration: "none", color: "inherit" }}

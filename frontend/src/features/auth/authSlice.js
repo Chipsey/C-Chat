@@ -8,10 +8,16 @@ export const loginUser = createAsyncThunk(
   async (credentials, { rejectWithValue }) => {
     try {
       const response = await authAPI.login(credentials);
-      // console.log(response);
+      console.log(response);
       localStorageService.setItem("token", response?.data?.auth?.token);
-      localStorageService.setItem("userName", response?.data?.auth?.userName);
-      localStorageService.setItem("userEmail", response?.data?.auth?.userEmail);
+      localStorageService.setItem(
+        "userName",
+        `${response?.data?.auth?.user?.first_name} ${response?.data?.auth?.user?.last_name}`
+      );
+      localStorageService.setItem(
+        "userEmail",
+        response?.data?.auth?.user?.email
+      );
       localStorageService.setItem(
         "profilePicture",
         response?.data?.auth?.profilePicture
@@ -32,8 +38,14 @@ export const register = createAsyncThunk(
       const response = await authAPI.register(credentials);
       // console.log(response);
       localStorageService.setItem("token", response?.data?.auth?.token);
-      localStorageService.setItem("userName", response?.data?.auth?.userName);
-      localStorageService.setItem("userEmail", response?.data?.auth?.userEmail);
+      localStorageService.setItem(
+        "userName",
+        `${response?.data?.auth?.user?.first_name} ${response?.data?.auth?.user?.last_name}`
+      );
+      localStorageService.setItem(
+        "userEmail",
+        response?.data?.auth?.user?.email
+      );
       localStorageService.setItem(
         "profilePicture",
         response?.data?.auth?.profilePicture

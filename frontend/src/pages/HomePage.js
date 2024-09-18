@@ -76,7 +76,7 @@ const HomePage = () => {
           `${LOCAL_SERVER_URL}/users?limit=${limit}&page=${page}&search=${search}`
         );
         setUsers(userList);
-        console.log(userList);
+        // console.log(userList);
         // fetchLastMessages(userList.items);
       } catch (error) {
         console.error("Error fetching users:", error);
@@ -129,9 +129,9 @@ const HomePage = () => {
       const formData = new FormData();
       formData.append("file", file);
       const response = dispatch(updateProfilePicture(formData));
-      console.log(JSON.stringify(response));
+      // console.log(JSON.stringify(response));
       setCurrentProfilePicture(response);
-      console.log(currentProfilePicture);
+      // console.log(currentProfilePicture);
 
       localStorageService.setItem("profilePicture", response?.fileName);
       setProfilePictureSaved(true);
@@ -152,11 +152,12 @@ const HomePage = () => {
       <CircularProgress sx={{ color: "rgba(107,138,253,255)" }} />
     </div>
   ) : (
-    <Grid container xl={12} md={12}>
-      <Grid container xl={12}>
-        <NavBar buttons={buttons} />
+    <Grid container xs={12}>
+      <Grid container xs={12}>
+        <NavBar buttons={buttons} userName={userName} />
       </Grid>
-      <Grid xl={6} md={8}>
+      <Grid xs={0} sm={0} md={1} lg={2} xl={2}></Grid>
+      <Grid container xs={12} sm={12} md={10} lg={8} xl={8}>
         <Box
           sx={{
             width: "100%",
@@ -178,7 +179,7 @@ const HomePage = () => {
               Upgrade Your Network with Link Speak Chat
             </Typography>
           </Grid>
-          <Grid xl={12} md={12} mb={5}>
+          <Grid xs={12} mb={5}>
             <CustomTextField
               label="Search"
               type="text"
@@ -194,11 +195,11 @@ const HomePage = () => {
               overflowY: "auto",
             }}
           >
-            {users?.items.map(
+            {users?.data.map(
               (user, index) =>
                 user?._id != sender && (
                   <Link
-                    to={`/chat/${user?._id}/${user?.name}`}
+                    to={`/chat/${user?._id}/${user?.first_name} ${user?.last_name}`}
                     key={index}
                     style={{
                       textDecoration: "none",
@@ -208,7 +209,7 @@ const HomePage = () => {
                   >
                     <Grid
                       container
-                      xl={12}
+                      xs={12}
                       p={3}
                       borderRadius={4}
                       sx={{
@@ -219,20 +220,22 @@ const HomePage = () => {
                         transition: "background-color 300ms ease",
                       }}
                     >
-                      <Grid xl={1} mr={5}>
+                      <Grid xs={1} mr={5}>
                         <Avatar
                           sx={{
                             backgroundColor: "white",
                             borderRadius: "0.5rem",
+                            padding: 1,
                           }}
                           className="color-primary fw-600"
                         >
-                          {user?.name?.charAt(0).toUpperCase()}
+                          {user?.first_name?.charAt(0).toUpperCase()}
+                          {user?.last_name?.charAt(0).toUpperCase()}
                         </Avatar>
                       </Grid>
-                      <Grid xl={9}>
+                      <Grid xs={9}>
                         <Typography sx={{ textAlign: "left" }}>
-                          {user?.name}
+                          {user?.first_name} {user?.last_name}
                         </Typography>
                         <Typography
                           sx={{
@@ -251,7 +254,7 @@ const HomePage = () => {
           </Box>
         </Box>
       </Grid>
-      <Grid container xl={6} pl={20} pr={10} pt={10}>
+      {/* <Grid container xs={6} pl={20} pr={10} pt={10}>
         <Profile
           isEdit="true"
           profilePictureSaved={profilePictureSaved}
@@ -261,7 +264,7 @@ const HomePage = () => {
           handleProfilePictureSave={handleProfilePictureSave}
           currentProfilePicture={currentProfilePicture}
         />
-      </Grid>
+      </Grid> */}
     </Grid>
   );
 };

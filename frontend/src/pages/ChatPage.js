@@ -1,24 +1,23 @@
 import React, { useState, useEffect, useRef } from "react";
-import axios from "axios";
 import CryptoJS from "crypto-js";
 import localStorageService from "../utils/localStorage";
 import { useNavigate, useParams } from "react-router-dom";
-import { JWD_SECRET } from "../config/environment";
 import { jwtDecode } from "jwt-decode";
 import {
   Grid,
-  Paper,
   Typography,
-  TextField,
   Button,
   Box,
   CircularProgress,
+  Tooltip,
 } from "@mui/material";
 import CustomTextField from "../components/customTextField";
 import SendIcon from "@mui/icons-material/Send";
 import { LOCAL_SERVER_URL, LOCAL_WS_SERVER_URL } from "../config/apiEndpoints";
-import { fetchItems } from "../api/api";
-import Profile from "../components/profile";
+import { createItem, fetchItems, setSeenMessages } from "../api/api";
+
+import CheckIcon from "@mui/icons-material/Check";
+import DoneAllIcon from "@mui/icons-material/DoneAll";
 
 const ChatPage = () => {
   const displayHeight = window.innerHeight - window.innerHeight * 0.1;
@@ -36,7 +35,6 @@ const ChatPage = () => {
   const messagesEndRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [fetch, setFetch] = useState(false);
   const limit = 30;
 
   const navigate = useNavigate();
@@ -49,19 +47,35 @@ const ChatPage = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  function generateEncryptionKey(str1, str2) {
+    console.log(str1, str2);
+
+    const combinedStr = str1 + str2;
+    const charArray = combinedStr.split("");
+    const sortedArray = charArray.sort();
+    const sortedStr = sortedArray.join("");
+    console.log(sortedStr);
+    return `${sortedStr}^$*#&&$!`;
+  }
+
   useEffect(() => {
-    console.log(recipient);
+    // console.log(recipient);
     setRecipientId(recipient);
     setRecipientName(name);
     const storedToken = localStorageService.getItem("token");
     const userName = localStorageService.getItem("userName");
     setToken(storedToken);
     const user = jwtDecode(storedToken);
-    console.log(user);
+    // console.log(user);
     setUserId(user?.userId);
     setSenderName(userName);
+    var dynamicKey = generateEncryptionKey(
+      userId.toString(),
+      recipientId.toString()
+    );
+    console.log(dynamicKey);
 
-    setFetch(true);
+    setEncryptionKey(dynamicKey);
 
     const socket = new WebSocket(LOCAL_WS_SERVER_URL);
     setWs(socket);
@@ -69,11 +83,17 @@ const ChatPage = () => {
     socket.onopen = () => {
       const connectionMessage = {
         type: "CONNECTION",
-        data: null,
+        data: {
+          recipient: { _id: recipientId, name: recipientName },
+          sender: { _id: userId, name: senderName },
+          groupId: null,
+          type: "user",
+          updatedAt: new Date(),
+        },
         token: storedToken,
       };
 
-      socket.send(JSON.stringify(connectionMessage)); // Send the connection message once the socket is open
+      socket.send(JSON.stringify(connectionMessage));
     };
 
     socket.onmessage = (event) => {
@@ -92,76 +112,113 @@ const ChatPage = () => {
             break;
           }
           case "MESSAGE": {
-            console.log(message.data);
-            console.log(recipientId);
-
+            console.log(message);
             // Decrypt message using the stored encryption key
             const decryptedMessage = CryptoJS.AES.decrypt(
               message?.data?.text,
-              "encryptionKey"
+              encryptionKey
             ).toString(CryptoJS.enc.Utf8);
 
-            if (message.data.sender._id === recipientId) {
-              setMessages((prevMessages) => [
-                { ...message.data, text: decryptedMessage },
-                ...prevMessages,
-              ]);
-            }
+            // if (message.data.sender._id === recipientId) {
+            setMessages((prevMessages) => [
+              { ...message.data, text: decryptedMessage },
+              ...prevMessages,
+            ]);
+            // }
+            break;
+          }
+          case "SEEN": {
+            console.log(message);
+
+            setMessages((prevMessages) =>
+              prevMessages.map((msg) => {
+                if (
+                  !msg.seen_by.some(
+                    (seen) => seen.user_id === message?.sender?._id
+                  )
+                ) {
+                  return {
+                    ...msg,
+                    seen_by: [
+                      ...msg.seen_by,
+                      { user_id: message?.sender?._id, date: new Date() },
+                    ],
+                  };
+                }
+                return msg;
+              })
+            );
             break;
           }
         }
       } catch (error) {
         console.error("Failed to parse message:", error);
       }
-      console.log(messages);
+      // console.log(messages);
     };
 
     return () => {
       socket.close();
     };
-  }, [token]);
+  }, [token, encryptionKey]);
+
+  useEffect(() => {
+    const seenMessages = async () => {
+      try {
+        const response = await setSeenMessages(
+          `${LOCAL_SERVER_URL}/messages/mark-seen/${recipientId}/${userId}`
+        );
+        console.log(response);
+      } catch (error) {
+        console.error("Error seen messages history:", error);
+      }
+    };
+    seenMessages();
+  }, [recipientId, userId]);
 
   useEffect(() => {
     const fetchChatHistory = async () => {
+      if (!encryptionKey) return; // Wait until the encryption key is available
       try {
         const response = await fetchItems(
           `${LOCAL_SERVER_URL}/messages/history?limit=${limit}&page=${page}&sender=${userId}&recipient=${recipientId}`
         );
 
         if (response && Array.isArray(response)) {
-          // Decrypt all messages in the response
           const decryptedMessages = response.map((message) => {
-            const decryptedText = CryptoJS.AES.decrypt(
-              message.text,
-              "encryptionKey"
-            ).toString(CryptoJS.enc.Utf8);
-            return { ...message, text: decryptedText };
+            try {
+              const decryptedText = CryptoJS.AES.decrypt(
+                message.text,
+                encryptionKey
+              ).toString(CryptoJS.enc.Utf8);
+              return { ...message, text: decryptedText };
+            } catch (error) {
+              console.error("Failed to decrypt message:", error);
+              return message; // Return the message unaltered if decryption fails
+            }
           });
 
           // Update the state with the new decrypted messages
           setMessages(decryptedMessages);
         }
-
-        console.log(messages);
       } catch (error) {
         console.error("Error fetching chat history:", error);
       }
     };
 
     fetchChatHistory();
-  }, [page, fetch]);
+  }, [page, encryptionKey]); // Add encryptionKey as a dependency
 
   function handleLogOut() {
     localStorageService.clear();
     navigate("/login");
   }
 
-  const sendMessage = () => {
-    if (ws && input) {
-      const encryptionKey = localStorageService.getItem("userEmail");
+  const sendMessage = async () => {
+    if (input) {
       const encryptedText = CryptoJS.AES.encrypt(
         input,
-        "encryptionKey"
+        encryptionKey
       ).toString();
 
       const message = {
@@ -180,33 +237,78 @@ const ChatPage = () => {
           groupId: null,
           type: "user",
           updatedAt: new Date(),
+          createdAt: new Date(),
         },
         token,
       };
 
-      console.log(message);
+      // Check if WebSocket is connected
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        // Send message via WebSocket
+        ws.send(JSON.stringify(message));
 
-      ws.send(JSON.stringify(message));
+        // Update messages immediately in the UI
+        // setMessages((prevMessages) => [
+        //   { ...message.data, text: input, seen_by: [] },
+        //   ...prevMessages,
+        // ]);
+      } else {
+        // WebSocket is not connected, send the message via API
+        try {
+          const response = await createItem(
+            `${LOCAL_SERVER_URL}/messages/create`,
+            message
+          );
 
-      setMessages((prevMessages) => [
-        { ...message.data, text: input },
-        ...prevMessages,
-      ]);
+          setMessages((prevMessages) => [
+            { ...response.data, text: input },
+            ...prevMessages,
+          ]);
+        } catch (error) {
+          console.error("Failed to send message via API:", error);
+        }
+      }
 
+      // Clear the input field
       setInput("");
     }
   };
+
+  // useEffect(() => {
+  //   const initializeChat = async () => {
+  //     if (ws && ws.readyState === WebSocket.OPEN) {
+  //       try {
+  //         const message = {
+  //           type: "SEEN",
+  //           data: {
+  //             recipient: { _id: recipientId, name: recipientName },
+  //             sender: { _id: userId, name: senderName },
+  //             groupId: null,
+  //             type: "user",
+  //             updatedAt: new Date(),
+  //           },
+  //           token: token,
+  //         };
+  //         ws.send(JSON.stringify(message));
+  //       } catch (error) {
+  //         console.error("Error initializing chat:", error);
+  //       }
+  //     }
+  //   };
+
+  //   initializeChat();
+  // }, [ws, WebSocket]);
 
   return loading ? (
     <div className="align-middle">
       <CircularProgress sx={{ color: "rgba(107,138,253,255)" }} />
     </div>
   ) : (
-    <Grid container xl={12} md={12} spacing={1} mt={1}>
-      <Grid container xl={4} md={4} p={5}>
-        <Profile userName={name}></Profile>
+    <Grid container xs={12}>
+      <Grid container xs={0} sm={0} md={1} lg={2} xl={2} p={5}>
+        {/* <Profile userName={name}></Profile> */}
       </Grid>
-      <Grid container xl={8} md={8}>
+      <Grid container xs={12} sm={12} md={10} lg={8} xl={8}>
         <Box
           sx={{
             width: "100%",
@@ -217,23 +319,23 @@ const ChatPage = () => {
             gap: 2,
           }}
         >
-          <Grid container xl={12}>
-            <Grid xl={12} mb={4} sx={{ fontWeight: "bold" }}>
+          <Grid container xs={12}>
+            <Grid xs={12} mb={2} sx={{ fontSize: "1rem" }}>
               {name}
-              <br />
+              {/* <br />
               <span
                 className="font-smaller fw-100 opacity-50"
                 style={{ fontSize: "0.7rem" }}
               >
                 {recipientId}
-              </span>
+              </span> */}
             </Grid>
 
             <Grid
               container
               item
               display={"block"}
-              xl={12}
+              xs={12}
               sx={{
                 height: displayHeight - window.innerHeight * 0.14,
                 overflowY: "auto",
@@ -251,14 +353,13 @@ const ChatPage = () => {
                     justifyContent={
                       userId === msg?.sender?._id ? "flex-end" : "flex-start"
                     }
-                    xl={12}
+                    xs={12}
                     key={index}
-                    mb={1}
+                    mb={3}
                   >
                     <Grid
                       item
-                      xl={5.5}
-                      md={5.5}
+                      xs={5.5}
                       className="fade-slide-up"
                       sx={{
                         background:
@@ -276,18 +377,49 @@ const ChatPage = () => {
                       <Typography
                         mb={1}
                         sx={{
-                          fontSize: "0.6rem",
+                          fontSize: "0.55rem",
                         }}
                       >
-                        {msg?.sender?.name}
+                        {msg?.sender?.name ??
+                          `${msg?.sender?.first_name} ${msg?.sender?.last_name}`}
                       </Typography>
                       <Typography
                         sx={{
-                          fontSize: "1rem",
+                          fontSize: "0.8rem",
                         }}
                       >
                         {msg?.text}
                       </Typography>
+                      <Grid container justifyContent="flex-end">
+                        {userId === msg?.sender?._id &&
+                          (msg?.seen_by.length > 0 ? (
+                            <Grid
+                              display={"flex"}
+                              alignItems={"center"}
+                              gap={1}
+                            >
+                              <Tooltip
+                                title={new Date(
+                                  msg?.seen_by[0]?.date
+                                ).toLocaleString("en-US", {
+                                  timeZone: "Asia/Colombo",
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                                placement="left"
+                                arrow
+                                leaveDelay={2000}
+                              >
+                                <DoneAllIcon sx={{ width: "1rem" }} />
+                              </Tooltip>
+                            </Grid>
+                          ) : (
+                            <CheckIcon sx={{ width: "1rem" }} />
+                          ))}
+                      </Grid>
                     </Grid>
                     <Grid
                       container
@@ -303,7 +435,7 @@ const ChatPage = () => {
                           textAlign: "right",
                         }}
                       >
-                        {new Date(msg?.updatedAt).toLocaleString("en-US", {
+                        {new Date(msg?.createdAt).toLocaleString("en-US", {
                           timeZone: "Asia/Colombo",
                           year: "numeric",
                           month: "long",
@@ -318,18 +450,27 @@ const ChatPage = () => {
               <div ref={messagesEndRef} />
             </Grid>
 
-            <Grid container xl={12}>
-              <Grid xl={11} md={10} sm={10}>
+            <Grid container xs={12}>
+              <Grid item xs={11}>
                 <CustomTextField
-                  label="You Message..."
+                  label=""
                   type="text"
                   name="Message"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  required={false}
+                  required={true}
+                  onSubmit={sendMessage}
+                  sx={{ mb: 2 }}
+                  multiline={true}
                 />
               </Grid>
-              <Grid xl={1} alignContent={"center"}>
+              <Grid
+                item
+                xs={1}
+                container
+                justifyContent="center"
+                alignItems="center"
+              >
                 <Button
                   variant="contained"
                   fullWidth
@@ -345,6 +486,16 @@ const ChatPage = () => {
                   <SendIcon />
                 </Button>
               </Grid>
+            </Grid>
+
+            <Grid container justifyContent="center" xs={12} mb={2} mt={1}>
+              <Typography
+                textAlign="center"
+                fontSize="0.6rem"
+                sx={{ opacity: 0.5 }}
+              >
+                - END TO END ENCRYPTED -
+              </Typography>
             </Grid>
           </Grid>
         </Box>

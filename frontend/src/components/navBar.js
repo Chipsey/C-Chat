@@ -1,7 +1,7 @@
 import React from "react";
 import { AppBar, Toolbar, Typography, Button, Box } from "@mui/material";
 
-const NavBar = ({ buttons }) => {
+const NavBar = ({ buttons, userName }) => {
   return (
     <AppBar
       position="static"
@@ -9,7 +9,16 @@ const NavBar = ({ buttons }) => {
       sx={{ bgcolor: "rgba(32,0,41,0)", color: "rgba(18, 24, 40, 255)" }}
     >
       <Toolbar>
-        <Box sx={{ flexGrow: 1 }} p={4}>
+        <Box sx={{ flexGrow: 0.5 }} p={4}>
+          <Typography
+            variant="h4"
+            align="left"
+            sx={{ flexGrow: 1, fontSize: "1rem" }}
+          >
+            {userName && `Hello again, ${userName}`}
+          </Typography>
+        </Box>
+        <Box sx={{ flexGrow: 0.5 }} p={4}>
           <Typography
             variant="h1"
             align="left"

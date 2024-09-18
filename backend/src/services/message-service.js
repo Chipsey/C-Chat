@@ -1,33 +1,40 @@
 const mongoose = require("mongoose");
 const Message = require("../models/Message");
+const logger = require("../utils/logger");
+const { readById } = require("./crud-service");
+const User = require("../models/User");
 
 // Create a new message
 exports.createMessage = async (messageData) => {
   const message = new Message(messageData);
+  logger("createMessage" + JSON.stringify(message));
   return await message.save();
 };
 
-// Get all messages (with optional filtering and pagination)
-// Get all messages (with optional filtering and pagination)
 exports.getAllMessages = async ({ sender, recipient, group, limit, page }) => {
-  const query = {};
+  const senderId = mongoose.Types.ObjectId.isValid(sender)
+    ? new mongoose.Types.ObjectId(sender)
+    : null;
+  const recipientId = mongoose.Types.ObjectId.isValid(recipient)
+    ? new mongoose.Types.ObjectId(recipient)
+    : null;
 
-  if (sender) query.sender = sender;
-  if (recipient) query.recipient = recipient;
-  if (group) query.group = group;
+  const query = {
+    $or: [
+      { sender: senderId, recipient: recipientId },
+      { sender: recipientId, recipient: senderId },
+    ],
+  };
 
+  // Fetch messages with sorting by 'createdAt'
   const messages = await Message.find(query)
-    .populate("sender recipient group")
+    .populate({ path: "sender", select: "-password" }) // Exclude password from sender
+    .populate({ path: "recipient", select: "-password" }) // Exclude password from recipient
     .limit(limit)
     .skip((page - 1) * limit)
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 }); // Sort in descending order of creation time
 
   const count = await Message.countDocuments(query);
-
-  await Message.updateMany(
-    { _id: { $in: messages.map((msg) => msg._id) }, seen: false },
-    { $set: { seen: true } }
-  );
 
   return { messages, totalMessages: count };
 };
@@ -61,7 +68,7 @@ exports.getChatHistory = async (sender, recipient, page = 1, limit = 20) => {
       .populate("sender", "-password")
       .populate("recipient", "-password");
 
-    console.log("Messages:", messages);
+    // console.log("Messages:", messages);
     return messages;
   } catch (error) {
     console.error("Error fetching chat history:", error.message);
@@ -105,6 +112,46 @@ exports.getLastMessageByRecipient = async ({ recipient, sender, group }) => {
 // Update a message by ID
 exports.updateMessage = async (id, messageData) => {
   return await Message.findByIdAndUpdate(id, messageData, { new: true });
+};
+
+exports.seenMessage = async (senderId, recipientId) => {
+  try {
+    // Correct instantiation using 'new'
+    const senderObjectId = new mongoose.Types.ObjectId(senderId);
+    const recipientObjectId = new mongoose.Types.ObjectId(recipientId);
+
+    // Find all messages with matching sender and recipient
+    const messages = await Message.find({
+      sender: senderObjectId,
+      recipient: recipientObjectId,
+    });
+
+    if (messages.length === 0) {
+      return { success: false, message: "No messages found." };
+    }
+
+    // Mark messages as seen by the recipient
+    const seenUpdatePromises = messages.map(async (message) => {
+      const alreadySeen = message.seen_by.some(
+        (seen) => seen.user_id.toString() === recipientId
+      );
+
+      if (!alreadySeen) {
+        message.seen_by.push({
+          user_id: recipientObjectId,
+          date: new Date(),
+        });
+        await message.save();
+      }
+    });
+
+    await Promise.all(seenUpdatePromises);
+
+    return { success: true, message: "Messages marked as seen." };
+  } catch (error) {
+    console.error(error);
+    throw new Error("Error marking messages as seen");
+  }
 };
 
 // Delete a message by ID

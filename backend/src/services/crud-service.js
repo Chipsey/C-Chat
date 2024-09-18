@@ -22,7 +22,7 @@ const readAll = async (
       : {};
 
     // Fetch items with pagination and projection
-    const items = await Model.find(query, projection)
+    const data = await Model.find(query, projection)
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit))
       .exec();
@@ -32,7 +32,7 @@ const readAll = async (
     const totalPages = Math.ceil(totalItems / parseInt(limit));
 
     return {
-      items,
+      data,
       currentPage: parseInt(page),
       totalPages,
       totalItems,

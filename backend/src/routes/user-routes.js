@@ -4,6 +4,7 @@ const userController = require("../controllers/user-controller");
 const {
   registerSchema,
   loginSchema,
+  updateUserSchema,
 } = require("../validation/user-validation");
 const validateRequest = require("../middlewares/validate-request-service");
 const authMiddleware = require("../middlewares/auth");
@@ -19,6 +20,12 @@ router.post(
 router.post("/login", validateRequest(loginSchema), userController.loginUser);
 router.get("/", authMiddleware, userController.getAllUsers);
 router.post("/group", authMiddleware, userController.addGroup);
+router.post(
+  "/:userId/update",
+  validateRequest(updateUserSchema),
+  authMiddleware,
+  userController.updateUserProfile
+);
 router.put(
   "/:userId/profile-picture",
   authMiddleware,
