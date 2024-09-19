@@ -20,7 +20,7 @@ export const loginUser = createAsyncThunk(
       );
       localStorageService.setItem(
         "profilePicture",
-        response?.data?.auth?.profilePicture
+        response?.data?.auth?.user?.profilePicture
       );
       return response.data.message;
     } catch (error) {
@@ -40,15 +40,15 @@ export const register = createAsyncThunk(
       localStorageService.setItem("token", response?.data?.auth?.token);
       localStorageService.setItem(
         "userName",
-        `${response?.data?.auth?.user?.first_name} ${response?.data?.auth?.user?.last_name}`
+        `${response?.data?.auth?.payload?.first_name} ${response?.data?.auth?.payload?.last_name}`
       );
       localStorageService.setItem(
         "userEmail",
-        response?.data?.auth?.user?.email
+        response?.data?.auth?.payload?.email
       );
       localStorageService.setItem(
         "profilePicture",
-        response?.data?.auth?.profilePicture
+        response?.data?.auth?.payload?.profilePicture
       );
       return response.data.message;
     } catch (error) {
