@@ -22,6 +22,9 @@ import DoneAllIcon from "@mui/icons-material/DoneAll";
 const ChatPage = () => {
   const displayHeight = window.innerHeight - window.innerHeight * 0.1;
 
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+
   const [ws, setWs] = useState(null);
   const [encryptionKey, setEncryptionKey] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -35,7 +38,11 @@ const ChatPage = () => {
   const messagesEndRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
+  const [isVideoCall, setIsVideoCall] = useState(true);
   const limit = 30;
+
+  let iceCandidateQueue = [];
+  let isRemoteDescriptionSet = false;
 
   const navigate = useNavigate();
 
@@ -299,7 +306,196 @@ const ChatPage = () => {
   //   initializeChat();
   // }, [ws, WebSocket]);
 
-  return loading ? (
+  const startLocalStream = async () => {
+    try {
+      // Request access to video and audio
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+
+      // Assign the stream to the local video element
+      localVideoRef.current.srcObject = stream;
+      return stream;
+    } catch (err) {
+      console.error("Error accessing media devices.", err);
+      return null; // Ensure we handle the error case properly
+    }
+  };
+
+  // ICE configuration for STUN/TURN servers
+  const iceConfiguration = {
+    iceServers: [
+      { urls: "stun:stun.l.google.com:19302" },
+      {
+        urls: "turn:your-turn-server-url",
+        username: "your-username",
+        credential: "your-credential",
+      },
+    ],
+  };
+
+  // Create the RTCPeerConnection instance
+  const peerConnection = new RTCPeerConnection(iceConfiguration);
+
+  // Start the local media stream and add tracks to the peer connection
+  const startCall = async () => {
+    const localStream = await startLocalStream();
+
+    if (localStream) {
+      // Add the local stream tracks (audio, video) to the peer connection
+      localStream
+        .getTracks()
+        .forEach((track) => peerConnection.addTrack(track, localStream));
+
+      try {
+        // Create the SDP offer and set it as the local description
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+
+        // Send the offer to the remote peer via WebSocket
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: "OFFER", data: { offer }, token }));
+        }
+      } catch (error) {
+        console.error("Error creating or sending the offer", error);
+      }
+    }
+  };
+
+  // Handle the incoming call offer from the remote peer
+  const handleIncomingCall = async (offer) => {
+    try {
+      console.log("Incoming call:", offer);
+
+      // Set the remote description (offer from remote peer)
+      await peerConnection.setRemoteDescription(
+        new RTCSessionDescription(offer)
+      );
+      isRemoteDescriptionSet = true;
+
+      // Add buffered ICE candidates
+      iceCandidateQueue.forEach(async (candidate) => {
+        try {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (error) {
+          console.error("Error adding buffered ICE candidate:", error);
+        }
+      });
+
+      iceCandidateQueue = []; // Clear the queue
+
+      // Create an answer to the offer
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+
+      // Send the answer back to the remote peer via WebSocket
+      ws.send(JSON.stringify({ type: "ANSWER", data: { answer }, token }));
+    } catch (error) {
+      console.error("Error handling the incoming call", error);
+    }
+  };
+
+  // Handle ICE candidates from remote peer
+  const handleIceCandidate = async (candidate) => {
+    try {
+      if (!isRemoteDescriptionSet) {
+        // Buffer the candidate until the remote description is set
+        iceCandidateQueue.push(candidate);
+        console.log("Buffered ICE candidate:", candidate);
+      } else {
+        // Add the ICE candidate directly
+        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        console.log("Successfully added ICE candidate");
+      }
+    } catch (error) {
+      console.error("Error adding received ICE candidate", error);
+    }
+  };
+
+  // Listen for ICE candidates and send them to the remote peer
+  peerConnection.onicecandidate = (event) => {
+    if (event.candidate) {
+      ws.send(
+        JSON.stringify({
+          type: "ICE_CANDIDATE",
+          data: { candidate: event.candidate },
+          token,
+        })
+      );
+    }
+  };
+
+  // Listen for incoming media streams from the remote peer and display it in the video element
+  peerConnection.ontrack = (event) => {
+    console.log("Remote track received:", event.track);
+    if (event.track.kind === "video") {
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = event.streams[0];
+        console.log("Assigned video stream to video element.");
+        testVideoDisplay();
+      } else {
+        console.error("Remote video element is not available.");
+      }
+    }
+  };
+
+  const testVideoDisplay = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = stream;
+      console.log("Test video stream assigned.");
+    }
+  };
+
+  // WebSocket message handler for receiving signaling data
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.onmessage = async (message) => {
+      const data = JSON.parse(message.data);
+
+      switch (data.type) {
+        case "OFFER":
+          await handleIncomingCall(data.data.offer);
+          break;
+
+        case "ANSWER":
+          await peerConnection.setRemoteDescription(
+            new RTCSessionDescription(data.data.answer)
+          );
+          break;
+
+        case "ICE_CANDIDATE":
+          await handleIceCandidate(data.data.candidate);
+          break;
+
+        default:
+          console.error("Unknown message type:", data.type);
+      }
+    };
+  }
+
+  // End the call and clean up resources
+  const endCall = () => {
+    peerConnection
+      .getSenders()
+      .forEach((sender) => peerConnection.removeTrack(sender));
+    peerConnection.close();
+
+    // Reset video elements if needed
+    localVideoRef.current.srcObject = null;
+    remoteVideoRef.current.srcObject = null;
+  };
+
+  return isVideoCall ? (
+    <div>
+      <video ref={remoteVideoRef} autoPlay playsInline></video>
+      <div>
+        <video ref={localVideoRef} autoPlay playsInline></video>
+      </div>
+      <Button onClick={startCall}>Start Call</Button>
+      <Button onClick={endCall}>End Call</Button>
+    </div>
+  ) : loading ? (
     <div className="align-middle">
       <CircularProgress sx={{ color: "rgba(107,138,253,255)" }} />
     </div>

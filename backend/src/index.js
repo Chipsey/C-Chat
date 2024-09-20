@@ -137,6 +137,15 @@ wss.on("connection", (ws) => {
           }
           break;
         }
+        case "OFFER":
+          broadcastMessage(parsedMessage, ws);
+          break;
+        case "ANSWER":
+          broadcastMessage(parsedMessage, ws);
+          break;
+        case "ICE_CANDIDATE":
+          broadcastMessage(parsedMessage, ws);
+          break;
       }
     } catch (error) {
       // Send error response over WebSocket
@@ -149,6 +158,14 @@ wss.on("connection", (ws) => {
       console.error("Error processing message:", error);
     }
   });
+
+  function broadcastMessage(message, sender) {
+    wss.clients.forEach((client) => {
+      if (client !== sender && client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify(message));
+      }
+    });
+  }
 
   // WebSocket error handler
   ws.on("error", (error) => {
